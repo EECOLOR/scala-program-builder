@@ -13,9 +13,7 @@ object _01_Basic_program extends Specification {
      |
      |This separation of concerns will (with more complex examples) make more 
      |sense.""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.~>
-    import org.qirx.programbuilder.Id
+    import org.qirx.programbuilder._
 
     // The parts that make up the program
     object ProgramParts {
@@ -58,13 +56,11 @@ object _01_Basic_program extends Specification {
      |I am slowly introducing the different building blocks this library makes 
      |available. The building blocks will prove their value as the types that are 
      |returned by methods become more complex.""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.Method
-    import org.qirx.programbuilder.Return
+    import org.qirx.programbuilder._
 
     // The parts that make up the program
     object ProgramParts {
-      case class Store(value: String) extends Method[Boolean] {
+      case class Store(value: String) extends Static[Boolean] {
         def result = value == "test-test"
       }
     }

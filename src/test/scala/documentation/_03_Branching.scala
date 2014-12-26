@@ -19,13 +19,7 @@ object _03_Branching extends Specification {
      |
      |Note that we end up with a program that has an `Either` as part of it's 
      |result. We merge it after running the program.""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.~>
-    import org.qirx.programbuilder.Id
-    import org.qirx.programbuilder.Monadic
-    import org.qirx.programbuilder.ProgramType
-    import org.qirx.programbuilder.+:
-    import org.qirx.programbuilder.Nil
+    import org.qirx.programbuilder._
     import scala.concurrent.ExecutionContext.Implicits.global
 
     // The parts that make up the program
@@ -46,7 +40,7 @@ object _03_Branching extends Specification {
 
     // The program itself
     def program(id: String) = {
-      implicit val programType = ProgramType[Index +: Store +: Util +: Nil]
+      implicit val programType = ProgramType[Index :: Store :: Util :: Nil]
 
       for {
         value <- Get(id)
@@ -92,7 +86,7 @@ object _03_Branching extends Specification {
     val storeRunner = StoreRunner andThen FutureToFutureResult
     val utilRunner = UtilRunner andThen IdToFuture andThen FutureToFutureResult
 
-    val programRunner = indexRunner +: storeRunner +: utilRunner
+    val programRunner = indexRunner or storeRunner or utilRunner
 
     // Running the program
     implicit def monadic(implicit ec: ExecutionContext) =
@@ -123,17 +117,8 @@ object _03_Branching extends Specification {
      |
      |Using this style simplifies running the program.
      |""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.~>
-    import org.qirx.programbuilder.Id
-    import org.qirx.programbuilder.Monadic
-    import org.qirx.programbuilder.ProgramType
-    import org.qirx.programbuilder.+:
-    import org.qirx.programbuilder.Nil
-    import org.qirx.programbuilder.Brancher
-    import org.qirx.programbuilder.Branch
-    import org.qirx.programbuilder.Method
-    import org.qirx.programbuilder.Return
+    import org.qirx.programbuilder._
+    import org.qirx.programbuilder.branching._
     import scala.concurrent.ExecutionContext.Implicits.global
 
     // The parts that make up the program
@@ -146,24 +131,6 @@ object _03_Branching extends Specification {
       case class Convert(value: String) extends Util[List[String]]
     }
 
-    implicit class OptionMethodEnhancements[F[_], R](right: F[Option[R]]) {
-
-      def ifEmpty[G[_], L](left: G[L])(
-        implicit brancher: Brancher[F, G, L]) =
-
-        // When the option is empty, use the result of left
-        brancher.branch(right)(_.toRight(left))
-    }
-    
-    implicit class ListMethodEnhancements[F[_], R](right: F[List[R]]) {
-    	
-    	def ifEmpty[G[_], L](left: G[L])(
-    			implicit brancher: Brancher[F, G, L]) =
-    			
-    			// When the option is empty, use the result of left
-    			brancher.branch(right)(list => if (list.isEmpty) Left(left) else Right(list))
-    }
-
     import ProgramParts._
 
     sealed trait Result
@@ -171,9 +138,10 @@ object _03_Branching extends Specification {
     val Failure = new Result {}
 
     // The program itself
-    implicit val programType = 
-    ProgramType[Index +: Store +: Util +: Method +: Branch[Result]#Instance +: Nil]
-    
+    implicit val programType =
+      ProgramType[Index :: Store :: Util :: Static :: Nil]
+        .withBranch[Result]
+
     def program(id: String) = {
 
       for {
@@ -211,17 +179,11 @@ object _03_Branching extends Specification {
     val indexRunner = IndexRunner
     val storeRunner = StoreRunner
     val utilRunner = UtilRunner andThen IdToFuture
-    val methodRunner = Method.MethodRunner andThen IdToFuture
-    
-    val programRunner = indexRunner +: storeRunner +: utilRunner +: methodRunner
+    val methodRunner = Static.Runner andThen IdToFuture
+
+    val programRunner = indexRunner or storeRunner or utilRunner or methodRunner
 
     // Running the program
-    implicit def monadic(implicit ec: ExecutionContext) =
-      new Monadic[Future] {
-        def create[A](a: A) = Future successful a
-        def flatMap[A, B](fa: Future[A])(f: A => Future[B]) =
-          fa flatMap f
-      }
 
     val result1 = program("test").mergeBranch runWith programRunner
     val result2 = program("foo").mergeBranch runWith programRunner
@@ -232,6 +194,6 @@ object _03_Branching extends Specification {
     Await.result(result3, 1.second) is Failure
   }
 
-     "program runners should not match program type in the same order" - {}
-     
+  "program runners should not match program type in the same order" - {}
+  "filtering" - {}
 }

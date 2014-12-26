@@ -22,9 +22,7 @@ object _02_Mixing_return_types extends Specification {
      |to get the actual result.
      |
      |Note that it is required to define a monadic instance for the result.""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.~>
-    import org.qirx.programbuilder.Monadic
+    import org.qirx.programbuilder._
     import scala.concurrent.ExecutionContext.Implicits.global
 
     // The parts that make up the program
@@ -45,7 +43,7 @@ object _02_Mixing_return_types extends Specification {
         _ <- Save(convertedValue)
       } yield ()
 
-      // The program runner
+    // The program runner
     type FutureOption[A] = Future[Option[A]]
     object ProgramRunner extends (CustomPart ~> FutureOption) {
       def transform[x] = {
@@ -87,13 +85,7 @@ object _02_Mixing_return_types extends Specification {
      |of the code itself remains stable.
      | 
      |Note that it is required to define a monadic instance for the result type.""".stripMargin - example {
-    import org.qirx.programbuilder.Implicits._
-    import org.qirx.programbuilder.~>
-    import org.qirx.programbuilder.Id
-    import org.qirx.programbuilder.Monadic
-    import org.qirx.programbuilder.ProgramType
-    import org.qirx.programbuilder.+:
-    import org.qirx.programbuilder.Nil
+    import org.qirx.programbuilder._
     import scala.concurrent.ExecutionContext.Implicits.global
 
     // The parts that make up the program
@@ -110,7 +102,7 @@ object _02_Mixing_return_types extends Specification {
 
     // The program itself
     def program(id: String) = {
-      implicit val programType = ProgramType[Index +: Store +: Util +: Nil]
+      implicit val programType = ProgramType[Index :: Store :: Util :: Nil]
 
       for {
         value <- Get(id)
@@ -128,13 +120,13 @@ object _02_Mixing_return_types extends Specification {
           Future successful result
       }
     }
-    
+
     object StoreRunner extends (Store ~> Future) {
       def transform[x] = {
         case Save(value) => Future successful (())
       }
-    } 
-    
+    }
+
     object UtilRunner extends (Util ~> Id) {
       def transform[x] = {
         case Convert(value) => value.toUpperCase
@@ -144,16 +136,16 @@ object _02_Mixing_return_types extends Specification {
     object FutureToFutureOption extends (Future ~> FutureOption) {
       def transform[x] = _ map Option.apply
     }
-    
+
     object IdToFuture extends (Id ~> Future) {
       def transform[x] = Future successful _
     }
-    
+
     val indexRunner = IndexRunner
     val storeRunner = StoreRunner andThen FutureToFutureOption
     val utilRunner = UtilRunner andThen IdToFuture andThen FutureToFutureOption
-    
-    val programRunner = indexRunner +: storeRunner +: utilRunner
+
+    val programRunner = indexRunner or storeRunner or utilRunner
 
     // Running the program
     implicit def monadic(implicit ec: ExecutionContext) =
@@ -162,7 +154,7 @@ object _02_Mixing_return_types extends Specification {
         def flatMap[A, B](fa: FutureOption[A])(f: A => FutureOption[B]) =
           fa.flatMap(_ map f getOrElse (Future successful None))
       }
-    
+
     val result1 = program("test") runWith programRunner
     val result2 = program("foo") runWith programRunner
 

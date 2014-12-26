@@ -1,4 +1,4 @@
-package org.qirx.programbuilder
+package org.qirx.programbuilder.branching
 
 /**
  * Represents a branch in a program. It essentially is the `Left` part of an either.
