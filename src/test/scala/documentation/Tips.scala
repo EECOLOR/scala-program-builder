@@ -1,0 +1,5 @@
+package documentation
+
+object Tips {
+
+}
