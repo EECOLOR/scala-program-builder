@@ -156,7 +156,7 @@ object Features extends Specification {
         }
       }
 
-    val runner = customPart1Runner or customPart2Runner
+    val runner = customPart2Runner or customPart1Runner
 
     program runWith runner is true
   }
@@ -209,7 +209,7 @@ object Features extends Specification {
         def transform[x] = Right apply _
       }
 
-    val runner = customPart1Runner or (customPart2Runner andThen idToResultType)
+    val runner = (customPart2Runner andThen idToResultType) or customPart1Runner
 
     program runWith runner is Right(true)
   }
@@ -225,7 +225,7 @@ object Features extends Specification {
 
     object Parts {
       trait CustomPart[ReturnType]
-      case class Part1(value: String) extends CustomPart[Option[String]]
+      case object Part1 extends CustomPart[Option[String]]
       case class Part2(value: String) extends CustomPart[Boolean]
     }
 
@@ -236,9 +236,9 @@ object Features extends Specification {
 
     val program =
       for {
-        value <- Part1("test") ifEmpty Return(false)
-        result <- Part2(value)
-      } yield result
+        value <- Part1 ifNone Return(false)
+        _ <- Part2(value) ifFalse Return(false)
+      } yield true
 
     type ResultType[x] = Either[String, x]
 
@@ -246,15 +246,13 @@ object Features extends Specification {
       new (CustomPart ~> Id) {
         def transform[x] = {
 
-          case Part1(value) =>
-            if (value == "test") Some(value + value)
-            else None
+          case Part1        => Some("testtest")
 
           case Part2(value) => value == "testtest"
         }
       }
 
-    val runner = customPartRunner or Static.Runner
+    val runner = Static.Runner or customPartRunner
 
     program.mergeBranch runWith runner is true
   }
@@ -264,7 +262,8 @@ object Features extends Specification {
      |Allows the usage of programs as program parts
      |
      |- `toPrgramType` method that can be used to adjust the program type
-     |- Implicit conversion of a program to the correct type
+     |- `adjustType` method to convert the program to a compatible type
+     |- `autoAdjust` method to convert the runner to the correct type
      |""".stripMargin - example {
     import org.qirx.programbuilder._
 
@@ -294,7 +293,7 @@ object Features extends Specification {
       for {
         value1 <- subProgram.toProgramType
         resul2 <- Part3(value1.toString)
-        result <- subProgram
+        result <- subProgram.adjustType[programType.Out]
       } yield result
     }
 
@@ -321,7 +320,7 @@ object Features extends Specification {
 
     val runner = customPart1Runner or customPart2Runner or customPart3Runner
 
-    program runWith runner is true
+    program runWith runner.autoAdjust is true
   }
 
   """|#Parts with map or flatMap functions
@@ -344,8 +343,29 @@ object Features extends Specification {
     val optionRunner = implicitly[Option ~> Seq]
     val listRunner = implicitly[Seq ~> Seq]
 
+    val runner = listRunner or optionRunner
+
+    program runWith runner.autoAdjust is Seq("test")
+  }
+
+  """|#Unapply in a for comprehension
+     |
+     |document""".stripMargin - example {
+    import org.qirx.programbuilder._
+
+    implicit val programType = ProgramType[List :: Option :: Nil]
+
+    val program =
+      for {
+        (value1, value2) <- Option("test" -> "test").toProgram
+        result <- List(value1 + value2).toProgram
+      } yield result
+
+    val optionRunner = implicitly[Option ~> Seq]
+    val listRunner = implicitly[Seq ~> Seq]
+
     val runner = optionRunner or listRunner
 
-    program runWith runner is Seq("test")
+    program runWith runner.autoAdjust is Seq("test")
   }
 }

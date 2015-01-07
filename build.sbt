@@ -2,6 +2,8 @@ name := "scala-program-builder"
 
 organization := "org.qirx"
 
+version := "0.1-SNAPSHOT"
+
 scalaVersion := "2.11.4"
 
 libraryDependencies ++= Seq(

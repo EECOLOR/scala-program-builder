@@ -155,8 +155,8 @@ object _02_Mixing_return_types extends Specification {
           fa.flatMap(_ map f getOrElse (Future successful None))
       }
 
-    val result1 = program("test") runWith programRunner
-    val result2 = program("foo") runWith programRunner
+    val result1 = program("test") runWith programRunner.autoAdjust
+    val result2 = program("foo") runWith programRunner.autoAdjust
 
     Await.result(result1, 1.second) is Some(())
     Await.result(result2, 1.second) is None

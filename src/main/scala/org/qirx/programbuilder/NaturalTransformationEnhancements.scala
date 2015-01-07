@@ -10,7 +10,7 @@ trait NaturalTransformationEnhancements {
   // variance notation
   implicit class EnhanceNaturalTransformation[F[_], O[_]](fToO: F ~> O) {
 
-    def or[G[_]](gToO: G ~> O) =
+    def or[G[_]](gToO: G ~> O):Coproduct[G, F]#Instance ~> O =
       new (Coproduct[G, F]#Instance ~> O) {
         def transform[x] = _.value match {
           case Left(g)  => gToO(g)
@@ -18,13 +18,11 @@ trait NaturalTransformationEnhancements {
         }
       }
 
-    def andThen[G[_]](oToG: O ~> G) =
+    def andThen[G[_]](oToG: O ~> G):F ~> G =
       new (F ~> G) {
         def transform[x] = fa => oToG(fToO(fa))
       }
+    
+    def autoAdjust[G[_]](implicit gToF:G ~> F):G ~> O = gToF andThen fToO
   }
-
-  implicit def adjustRunner[I[_], O[_], T[_]](runner: I ~> T)(
-    implicit oToI: O ~> I): O ~> T =
-    oToI andThen runner
 }

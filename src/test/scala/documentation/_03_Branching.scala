@@ -99,8 +99,8 @@ object _03_Branching extends Specification {
           }
       }
 
-    val result1 = program("test") runWith programRunner map (_.merge)
-    val result2 = program("foo") runWith programRunner map (_.merge)
+    val result1 = program("test") runWith programRunner.autoAdjust map (_.merge)
+    val result2 = program("foo") runWith programRunner.autoAdjust map (_.merge)
 
     Await.result(result1, 1.second) is Success
     Await.result(result2, 1.second) is Failure
@@ -145,7 +145,7 @@ object _03_Branching extends Specification {
     def program(id: String) = {
 
       for {
-        value <- Get(id) ifEmpty Return(Failure)
+        value <- Get(id) ifNone Return(Failure)
         convertedValue <- Convert(value) ifEmpty Return(Failure)
         _ <- Save(convertedValue.mkString)
       } yield Success
@@ -185,9 +185,9 @@ object _03_Branching extends Specification {
 
     // Running the program
 
-    val result1 = program("test").mergeBranch runWith programRunner
-    val result2 = program("foo").mergeBranch runWith programRunner
-    val result3 = program("").mergeBranch runWith programRunner
+    val result1 = program("test").mergeBranch runWith programRunner.autoAdjust
+    val result2 = program("foo").mergeBranch runWith programRunner.autoAdjust
+    val result3 = program("").mergeBranch runWith programRunner.autoAdjust
 
     Await.result(result1, 1.second) is Success
     Await.result(result2, 1.second) is Failure

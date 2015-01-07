@@ -15,10 +15,10 @@ class Program[F[_]] {
     def map[B](f: A => B): Program[F]#Instance[B] =
       flatMap(f andThen Create.apply)
 
-    def transformType[G[_]](implicit fToG: F ~> G): Program[G]#Instance[A] =
+    def adjustType[G[_]](implicit fToG: F ~> G): Program[G]#Instance[A] =
       this match {
         case Create(a)      => Program(a)
-        case FlatMap(fa, f) => Program lift fToG(fa) flatMap (f andThen (_ transformType fToG))
+        case FlatMap(fa, f) => Program lift fToG(fa) flatMap (f andThen (_ adjustType fToG))
       }
 
     def runWith[G[_], AA >: A](runner: F ~> G)(implicit G: Monadic[G]): G[AA] =
@@ -30,6 +30,14 @@ class Program[F[_]] {
       }
 
     def run(implicit runner: F ~> Id): A = this runWith runner
+
+    // We might add support for filtering, for now it's here to support
+    // unpacking in the for comprehension
+    // for {
+    //   (value1, value2) <- ValueOf("test" -> "test")
+    // } yield value1 + value2
+    def withFilter(f: A => Boolean): Program[F]#Instance[A] =
+      this
   }
 
   private case class Create[A](a: A) extends Instance[A]
@@ -43,5 +51,5 @@ object Program {
 
   def lift[F[_], A](fa: F[A]): Program[F]#Instance[A] =
     new Program[F].FlatMap(fa, Program.apply[F, A])
-    
+
 }

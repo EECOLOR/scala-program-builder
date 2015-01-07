@@ -13,7 +13,7 @@ object NaturalTransformation extends DefaultNaturalTransformations
 
 trait DefaultNaturalTransformations {
 
-  implicit def identityTransform[F[_]] = new (F ~> F) {
+  implicit def identityTransform[F[_]]:F ~> F = new (F ~> F) {
     def transform[x] = identity
   }
 
@@ -21,7 +21,7 @@ trait DefaultNaturalTransformations {
     def transform[x] = Future successful _
   }
 
-  implicit def idToEither[L] =
+  implicit def idToEither[L]:Id ~> ({ type T[x] = Either[L, x] })#T =
     new (Id ~> ({ type T[x] = Either[L, x] })#T) {
       def transform[x] = Right apply _
     }
