@@ -4,24 +4,25 @@ package coproduct
 import scala.language.higherKinds
 
 trait Addition {
-  trait TypeBasedAdd[O[_], T[_]] {
+  trait TypeBasedPrepend[O[_], T[_]] {
     type Out[_]
   }
 
   trait LowerPriorityTypeBasedAdd {
-    implicit def plain[F[_], G[_]]: TypeBasedAdd[F, G] {
+    implicit def plain[F[_], G[_]]: TypeBasedPrepend[F, G] {
       // Not sure why, but this construct (instead of placing G directly into
       // the coproduct) prevents a diverging implicit expansion.
     	type T[x] = G[x]
-      type Out[x] = Coproduct[F, T]#Instance[x]
+      type Out[x] = (G :+: F :+: CNil)#Instance[x]
     } = null
   }
 
-  object TypeBasedAdd extends LowerPriorityTypeBasedAdd {
+  object TypeBasedPrepend extends LowerPriorityTypeBasedAdd {
 
-    implicit def coproduct[F[_], G[_], H[_]](
-      implicit add: TypeBasedAdd[G, H]): TypeBasedAdd[Coproduct[F, G]#Instance, H] {
-      type Out[x] = Coproduct[F, add.Out]#Instance[x]
+    type Aux[O[_], T[_], R] = TypeBasedPrepend[O, T] { type Out = R }
+    
+    implicit def coproduct[F[_], G <: Coproduct, H[_]]: TypeBasedPrepend[(F :+: G)#Instance, H] {
+      type Out[x] = (H :+: F :+: G)#Instance[x]
     } = null
   }
 }

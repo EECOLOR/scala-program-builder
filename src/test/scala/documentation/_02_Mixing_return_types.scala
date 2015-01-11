@@ -102,7 +102,7 @@ object _02_Mixing_return_types extends Specification {
 
     // The program itself
     def program(id: String) = {
-      implicit val programType = ProgramType[Index :: Store :: Util :: Nil]
+      implicit val programType = ProgramType[Index :+: Store :+: Util :+: CNil]
 
       for {
         value <- Get(id)
@@ -145,7 +145,7 @@ object _02_Mixing_return_types extends Specification {
     val storeRunner = StoreRunner andThen FutureToFutureOption
     val utilRunner = UtilRunner andThen IdToFuture andThen FutureToFutureOption
 
-    val programRunner = indexRunner or storeRunner or utilRunner
+    val programRunner = indexRunner :+: storeRunner :+: utilRunner
 
     // Running the program
     implicit def monadic(implicit ec: ExecutionContext) =
@@ -155,8 +155,8 @@ object _02_Mixing_return_types extends Specification {
           fa.flatMap(_ map f getOrElse (Future successful None))
       }
 
-    val result1 = program("test") runWith programRunner.autoAdjust
-    val result2 = program("foo") runWith programRunner.autoAdjust
+    val result1 = program("test") runWith programRunner
+    val result2 = program("foo") runWith programRunner
 
     Await.result(result1, 1.second) is Some(())
     Await.result(result2, 1.second) is None

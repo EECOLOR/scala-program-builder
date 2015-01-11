@@ -14,8 +14,5 @@ package object programbuilder
 
   type ~>[-F[_], +G[_]] = NaturalTransformation[F, G]
 
-  type ::[F[_], T]
-  type Nil
-  
   def ValueOf[T](value:T) = Return(value)
 }

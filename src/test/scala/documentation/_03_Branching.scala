@@ -40,7 +40,7 @@ object _03_Branching extends Specification {
 
     // The program itself
     def program(id: String) = {
-      implicit val programType = ProgramType[Index :: Store :: Util :: Nil]
+      implicit val programType = ProgramType[Index :+: Store :+: Util :+: CNil]
 
       for {
         value <- Get(id)
@@ -86,7 +86,7 @@ object _03_Branching extends Specification {
     val storeRunner = StoreRunner andThen FutureToFutureResult
     val utilRunner = UtilRunner andThen IdToFuture andThen FutureToFutureResult
 
-    val programRunner = indexRunner or storeRunner or utilRunner
+    val programRunner = indexRunner :+: storeRunner :+: utilRunner
 
     // Running the program
     implicit def monadic(implicit ec: ExecutionContext) =
@@ -99,8 +99,8 @@ object _03_Branching extends Specification {
           }
       }
 
-    val result1 = program("test") runWith programRunner.autoAdjust map (_.merge)
-    val result2 = program("foo") runWith programRunner.autoAdjust map (_.merge)
+    val result1 = program("test") runWith programRunner map (_.merge)
+    val result2 = program("foo") runWith programRunner map (_.merge)
 
     Await.result(result1, 1.second) is Success
     Await.result(result2, 1.second) is Failure
@@ -138,14 +138,15 @@ object _03_Branching extends Specification {
     val Failure = new Result {}
 
     // The program itself
-    implicit val programType =
-      ProgramType[Index :: Store :: Util :: Static :: Nil]
+    implicit val programType:
+    ProgramType[(Branch[Result]#Instance :+: Index :+: Store :+: Util :+: Static :+: CNil)#Instance] =
+      ProgramType[Index :+: Store :+: Util :+: Static :+: CNil]
         .withBranch[Result]
 
     def program(id: String) = {
 
       for {
-        value <- Get(id) ifNone Return(Failure)
+        value <- OptionProgramEnhancements(Get(id)) ifNone Return(Failure)
         convertedValue <- Convert(value) ifEmpty Return(Failure)
         _ <- Save(convertedValue.mkString)
       } yield Success
@@ -181,13 +182,13 @@ object _03_Branching extends Specification {
     val utilRunner = UtilRunner andThen IdToFuture
     val methodRunner = Static.Runner andThen IdToFuture
 
-    val programRunner = indexRunner or storeRunner or utilRunner or methodRunner
+    val programRunner = indexRunner :+: storeRunner :+: utilRunner :+: methodRunner
 
     // Running the program
 
-    val result1 = program("test").mergeBranch runWith programRunner.autoAdjust
-    val result2 = program("foo").mergeBranch runWith programRunner.autoAdjust
-    val result3 = program("").mergeBranch runWith programRunner.autoAdjust
+    val result1 = program("test").mergeBranch runWith programRunner
+    val result2 = program("foo").mergeBranch runWith programRunner
+    val result3 = program("").mergeBranch runWith programRunner
 
     Await.result(result1, 1.second) is Success
     Await.result(result2, 1.second) is Failure

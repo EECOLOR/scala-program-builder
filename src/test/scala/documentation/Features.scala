@@ -134,7 +134,7 @@ object Features extends Specification {
 
     import Parts._
 
-    implicit val programType = ProgramType[CustomPart1 :: CustomPart2 :: Nil]
+    implicit val programType = ProgramType[CustomPart1 :+: CustomPart2 :+: CNil]
 
     val program =
       for {
@@ -156,7 +156,7 @@ object Features extends Specification {
         }
       }
 
-    val runner = customPart2Runner or customPart1Runner
+    val runner = customPart1Runner :+: customPart2Runner
 
     program runWith runner is true
   }
@@ -178,7 +178,7 @@ object Features extends Specification {
 
     import Parts._
 
-    implicit val programType = ProgramType[CustomPart1 :: CustomPart2 :: Nil]
+    implicit val programType = ProgramType[CustomPart1 :+: CustomPart2 :+: CNil]
 
     val program =
       for {
@@ -209,7 +209,7 @@ object Features extends Specification {
         def transform[x] = Right apply _
       }
 
-    val runner = (customPart2Runner andThen idToResultType) or customPart1Runner
+    val runner = customPart1Runner :+: (customPart2Runner andThen idToResultType)
 
     program runWith runner is Right(true)
   }
@@ -231,14 +231,14 @@ object Features extends Specification {
 
     import Parts._
 
-    implicit val programType = ProgramType[CustomPart :: Static :: Nil]
+    implicit val programType = ProgramType[CustomPart :+: Static :+: CNil]
       .withBranch[Boolean]
 
     val program =
       for {
         value <- Part1 ifNone Return(false)
-        _ <- Part2(value) ifFalse 
-        Return(false)
+        _ <- Part2(value) ifFalse
+          Return(false)
       } yield true
 
     type ResultType[x] = Either[String, x]
@@ -253,7 +253,7 @@ object Features extends Specification {
         }
       }
 
-    val runner = Static.Runner or customPartRunner
+    val runner = customPartRunner :+: Static.Runner
 
     program.mergeBranch runWith runner is true
   }
@@ -280,7 +280,7 @@ object Features extends Specification {
     import Parts._
 
     val subProgram = {
-      implicit val programType = ProgramType[CustomPart1 :: CustomPart2 :: Nil]
+      implicit val programType = ProgramType[CustomPart1 :+: CustomPart2 :+: CNil]
 
       for {
         value <- Part1("test")
@@ -289,7 +289,8 @@ object Features extends Specification {
     }
 
     val program = {
-      implicit val programType = ProgramType[CustomPart1 :: CustomPart2 :: CustomPart3 :: Nil]
+      implicit val programType =
+        ProgramType[CustomPart1 :+: CustomPart2 :+: CustomPart3 :+: CNil]
 
       for {
         value1 <- subProgram.toProgramType
@@ -319,7 +320,7 @@ object Features extends Specification {
         }
       }
 
-    val runner = customPart1Runner or customPart2Runner or customPart3Runner
+    val runner = customPart3Runner :+: customPart2Runner :+: customPart1Runner
 
     program runWith runner.autoAdjust is true
   }
@@ -333,7 +334,7 @@ object Features extends Specification {
      |""".stripMargin - example {
     import org.qirx.programbuilder._
 
-    implicit val programType = ProgramType[List :: Option :: Nil]
+    implicit val programType = ProgramType[Option :+: List :+: CNil]
 
     val program =
       for {
@@ -342,11 +343,11 @@ object Features extends Specification {
       } yield result
 
     val optionRunner = implicitly[Option ~> Seq]
-    val listRunner = implicitly[Seq ~> Seq]
+    val listRunner = implicitly[List ~> Seq]
 
-    val runner = listRunner or optionRunner
+    val runner = optionRunner :+: listRunner
 
-    program runWith runner.autoAdjust is Seq("test")
+    program runWith runner is Seq("test")
   }
 
   """|#Unapply in a for comprehension
@@ -354,7 +355,7 @@ object Features extends Specification {
      |document""".stripMargin - example {
     import org.qirx.programbuilder._
 
-    implicit val programType = ProgramType[List :: Option :: Nil]
+    implicit val programType = ProgramType[List :+: Option :+: CNil]
 
     val program =
       for {
@@ -363,10 +364,10 @@ object Features extends Specification {
       } yield result
 
     val optionRunner = implicitly[Option ~> Seq]
-    val listRunner = implicitly[Seq ~> Seq]
+    val listRunner = implicitly[List ~> Seq]
 
-    val runner = optionRunner or listRunner
+    val runner = listRunner :+: optionRunner
 
-    program runWith runner.autoAdjust is Seq("test")
+    program runWith runner is Seq("testtest")
   }
 }

@@ -11,6 +11,7 @@ trait NaturalTransformation[-F[_], +G[_]] { fToG =>
 
 object NaturalTransformation extends DefaultNaturalTransformations
 
+// The order of the implicits increases compile performance
 trait DefaultNaturalTransformations extends CoproductInjectors {
 
   implicit object IdToFuture extends (Id ~> Future) {
@@ -28,29 +29,30 @@ trait DefaultNaturalTransformations extends CoproductInjectors {
 }
 
 trait CoproductInjectors extends LowerPriorityCoproductInjectors {
-  implicit def inCoproductTail[F[_], Head[_], Tail[_]](
-    implicit injectInTail: F ~> Tail): F ~> Coproduct[Head, Tail]#Instance =
-    new (F ~> Coproduct[Head, Tail]#Instance) {
-      def transform[A] = fa => Coproduct(Right(injectInTail(fa)))
+  implicit def inCoproductTail[F[_], Head[_], Tail <: Coproduct](
+    implicit injectInTail: F ~> Tail#Instance): F ~> (Head :+: Tail)#Instance =
+    new (F ~> (Head :+: Tail)#Instance) {
+      def transform[A] = fa => Coproduct.Tail(injectInTail(fa))
     }
 }
 
 trait LowerPriorityCoproductInjectors extends CoproductTypeAlignment {
-  implicit def atCoproductHead[Head[_], Tail[_]]: Head ~> Coproduct[Head, Tail]#Instance =
-    new (Head ~> Coproduct[Head, Tail]#Instance) {
-      def transform[A] = fa => Coproduct(Left(fa))
+  implicit def atCoproductHead[Head[_], Tail <: Coproduct]: Head ~> (Head :+: Tail)#Instance =
+    new (Head ~> (Head :+: Tail)#Instance) {
+      def transform[A] = fa => Coproduct.Head(fa)
     }
 }
 
 trait CoproductTypeAlignment extends LowerPriorityDefaultNaturalTransformations {
-  implicit def coproduct[Head[_], Tail[_], T[_]](
+  implicit def coproduct[Head[_], Tail <: Coproduct, T[_]](
     implicit injectHead: Head ~> T,
-    injectTail: Tail ~> T): (Coproduct[Head, Tail]#Instance ~> T) =
-    new (Coproduct[Head, Tail]#Instance ~> T) {
-      def transform[x] = _.value match {
-        case Left(head)  => injectHead(head)
-        case Right(tail) => injectTail(tail)
-      }
+    injectTail: Tail#Instance ~> T): (Head :+: Tail)#Instance ~> T =
+    new ((Head :+: Tail)#Instance ~> T) {
+
+      def transform[x] = _.fold(
+        ifHead = injectHead(_),
+        ifTail = injectTail(_)
+      )
     }
 }
 

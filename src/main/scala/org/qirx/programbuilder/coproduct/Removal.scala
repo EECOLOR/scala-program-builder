@@ -3,17 +3,18 @@ package coproduct
 
 import scala.language.higherKinds
 
-trait Removal {
+trait Removal { self: Addition =>
 
   /**
    * Type to represent removal
    */
   trait TypeBasedRemove[O[_], T[_]] {
 
+    
     /**
      * The result type after removal
      */
-    type Out[_]
+	  type Result <: Coproduct
 
     /**
      * Removes the value of type T from the given O
@@ -32,7 +33,7 @@ trait Removal {
      * `Out` will be `Coproduct[Option, Seq]`
      * result will be `Either[List[A], Coproduct[Option, Seq]]`
      */
-    def remove[A]: O[A] => Either[T[A], Out[A]]
+    def remove[A]: O[A] => Either[T[A], Result#Instance[A]]
   }
 
   object TypeBasedRemove {
@@ -40,32 +41,26 @@ trait Removal {
     // Simple alias to allow the fancy O - T notation
     private type -[O[_], T[_]] = TypeBasedRemove[O, T]
 
-    implicit def atHead[T[_], Tail[_]] =
-      new (Coproduct[T, Tail]#Instance - T) {
-        type Out[x] = Tail[x]
-        def remove[A] = _.value
+    implicit def atHead[T[_], Tail <: Coproduct] =
+      new ((T :+: Tail)#Instance - T) {
+        type Result = Tail
+        def remove[A] = _.toEither
       }
 
-    implicit def atTail[T[_], Head[_]] =
-      new (Coproduct[Head, T]#Instance - T) {
-        type Out[x] = Head[x]
-        def remove[A] = _.value.swap
-      }
+    implicit def inTail[T[_], Head[_], Tail <: Coproduct](
+      implicit tailRemover: Tail#Instance - T) =
+      new ((Head :+: Tail)#Instance - T) {
 
-    implicit def inTail[T[_], Head[_], Tail[_]](
-      implicit tailRemover: Tail - T) =
-      new (Coproduct[Head, Tail]#Instance - T) {
-
-        type Out[x] = Coproduct[Head, tailRemover.Out]#Instance[x]
+        type Result = (Head :+: tailRemover.Result)
 
         def remove[A] =
-          _.value match {
+          _.toEither match {
             case Left(a) =>
-              Right(Coproduct(Left(a)))
+              Right(Coproduct.Head(a))
             case Right(b) =>
               tailRemover.remove(b) match {
                 case Left(a)  => Left(a)
-                case Right(b) => Right(Coproduct(Right(b)))
+                case Right(b) => Right(Coproduct.Tail(b))
               }
           }
       }

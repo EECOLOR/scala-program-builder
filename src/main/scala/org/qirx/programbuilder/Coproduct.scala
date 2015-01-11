@@ -2,14 +2,45 @@ package org.qirx.programbuilder
 
 import scala.language.higherKinds
 
-class Coproduct[F[_], G[_]] {
-  case class Instance[A](value: Either[F[A], G[A]])
+sealed trait Coproduct {
+  type Instance[x]
 }
+sealed trait :+:[H[_], T <: Coproduct] extends Coproduct {
+  type Instance[x] <: Coproduct.Ops[H, T, x]
+}
+sealed trait CNil extends Coproduct
 
 trait CoproductImplicits extends coproduct.Removal with coproduct.Addition
 
 object Coproduct extends CoproductImplicits {
 
-  def apply[F[_], G[_], A](value: Either[F[A], G[A]]) =
-    new Coproduct[F, G].Instance(value)
+  trait Ops[H[_], T <: Coproduct, x] {
+  
+  def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X
+  
+  def toEither:Either[H[x], T#Instance[x]] = 
+    fold(ifHead = Left(_), ifTail = Right(_))
+}
+  
+  class Head[H[_], T <: Coproduct] extends (H :+: T) {
+    case class Instance[x](head: H[x]) extends Ops[H, T, x] {
+      def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X =
+        ifHead(head)
+    }
+  }
+  object Head {
+    def apply[H[_], T <: Coproduct, A](head: H[A]): (H :+: T)#Instance[A] =
+      new Head[H, T].Instance(head)
+  }
+
+  class Tail[H[_], T <: Coproduct] extends (H :+: T) {
+    case class Instance[x](tail: T#Instance[x]) extends Ops[H, T, x] {
+      def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X =
+        ifTail(tail)
+    }
+  }
+  object Tail {
+    def apply[H[_], T <: Coproduct, A](tail: T#Instance[A]): (H :+: T)#Instance[A] =
+      new Tail[H, T].Instance(tail)
+  }
 }

@@ -13,7 +13,7 @@ object MergableProgramType {
     implicit typeContainsBranch: Branch[T]#Instance ~> O,
     remover: Coproduct.TypeBasedRemove[O, Branch[T]#Instance]) =
     new MergableProgramType[O, T] {
-      type Out[A] = remover.Out[A]
+      type Out[A] = remover.Result#Instance[A]
       def extractBranch[A](o:O[A]) = remover remove o
     }
 }
