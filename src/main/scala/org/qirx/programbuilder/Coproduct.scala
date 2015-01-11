@@ -6,11 +6,7 @@ class Coproduct[F[_], G[_]] {
   case class Instance[A](value: Either[F[A], G[A]])
 }
 
-trait CoproductImplicits
-  extends coproduct.Injectors
-  with coproduct.Removal
-  with coproduct.Addition
-  with coproduct.TypeAlignment
+trait CoproductImplicits extends coproduct.Removal with coproduct.Addition
 
 object Coproduct extends CoproductImplicits {
 

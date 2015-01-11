@@ -11,3 +11,5 @@ libraryDependencies ++= Seq(
 )
 
 testFrameworks += new TestFramework("org.qirx.littlespec.sbt.TestFramework")
+
+scalacOptions += "-Xlog-implicits"

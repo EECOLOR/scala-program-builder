@@ -237,7 +237,8 @@ object Features extends Specification {
     val program =
       for {
         value <- Part1 ifNone Return(false)
-        _ <- Part2(value) ifFalse Return(false)
+        _ <- Part2(value) ifFalse 
+        Return(false)
       } yield true
 
     type ResultType[x] = Either[String, x]
