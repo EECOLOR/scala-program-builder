@@ -1,8 +1,9 @@
 package org.qirx.programbuilder
 
 import scala.language.higherKinds
+import org.qirx.programbuilder.branching.Branch
 
-class Program[F[_]] {
+final class Program[F[_]] {
 
   trait Instance[+A] {
 

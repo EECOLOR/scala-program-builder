@@ -3,7 +3,6 @@ package org.qirx.programbuilder
 import scala.language.implicitConversions
 import scala.language.higherKinds
 
-
 trait LowerPriorityToProgramImplicits {
   /**
    * Lifts a container to a program containing only instructions of that type.
@@ -13,7 +12,7 @@ trait LowerPriorityToProgramImplicits {
 }
 
 trait ToProgramImplicits extends LowerPriorityToProgramImplicits {
-  
+
   /**
    * Lifts a container to a program of a type captured inside `ProgramType`
    */
@@ -21,9 +20,9 @@ trait ToProgramImplicits extends LowerPriorityToProgramImplicits {
     implicit programType: ProgramType[O],
     inject: F ~> O): Program[O]#Instance[A] =
     Program lift inject(fa)
-  
-  implicit class ToProgramEnhancement[F[_], A](fa:F[A]) {
-    def toProgram[O[_]](implicit programType:ProgramType[O], inject:F ~> O):Program[O]#Instance[A] = 
-      fa
+
+  implicit class ToProgramEnhancement[F[_], A](fa: F[A]) {
+    def toProgram[O[_]](implicit programType: ProgramType[O], inject: F ~> O): Program[O]#Instance[A] =
+      toComplexProgram(fa)
   }
 }

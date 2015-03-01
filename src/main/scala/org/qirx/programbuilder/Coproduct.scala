@@ -4,11 +4,15 @@ import scala.language.higherKinds
 
 sealed trait Coproduct {
   type Instance[x]
+  type Injectors[O[_]] <: HList
 }
 sealed trait :+:[H[_], T <: Coproduct] extends Coproduct {
   type Instance[x] <: Coproduct.Ops[H, T, x]
+	type Injectors[O[_]] = (H ~> O) :: T#Injectors[O]
 }
-sealed trait CNil extends Coproduct
+sealed trait CNil extends Coproduct {
+  type Injectors[O[_]] = HNil
+}
 
 trait CoproductImplicits extends coproduct.Removal with coproduct.Addition
 

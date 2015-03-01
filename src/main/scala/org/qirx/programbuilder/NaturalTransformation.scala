@@ -29,17 +29,17 @@ trait DefaultNaturalTransformations extends CoproductInjectors {
 }
 
 trait CoproductInjectors extends LowerPriorityCoproductInjectors {
-  implicit def inCoproductTail[F[_], Head[_], Tail <: Coproduct](
-    implicit injectInTail: F ~> Tail#Instance): F ~> (Head :+: Tail)#Instance =
-    new (F ~> (Head :+: Tail)#Instance) {
-      def transform[A] = fa => Coproduct.Tail(injectInTail(fa))
+  implicit def atCoproductHead[Head[_], Tail <: Coproduct]: Head ~> (Head :+: Tail)#Instance =
+    new (Head ~> (Head :+: Tail)#Instance) {
+      def transform[A] = fa => Coproduct.Head(fa)
     }
 }
 
 trait LowerPriorityCoproductInjectors extends CoproductTypeAlignment {
-  implicit def atCoproductHead[Head[_], Tail <: Coproduct]: Head ~> (Head :+: Tail)#Instance =
-    new (Head ~> (Head :+: Tail)#Instance) {
-      def transform[A] = fa => Coproduct.Head(fa)
+  implicit def inCoproductTail[F[_], Head[_], Tail <: Coproduct](
+    implicit injectInTail: F ~> Tail#Instance): F ~> (Head :+: Tail)#Instance =
+    new (F ~> (Head :+: Tail)#Instance) {
+      def transform[A] = fa => Coproduct.Tail(injectInTail(fa))
     }
 }
 
