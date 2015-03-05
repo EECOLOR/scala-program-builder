@@ -10,7 +10,6 @@ trait Removal { self: Addition =>
    */
   trait TypeBasedRemove[O[_], T[_]] {
 
-    
     /**
      * The result type after removal
      */

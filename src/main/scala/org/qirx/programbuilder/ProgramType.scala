@@ -26,7 +26,7 @@ case class With[F[_], C <: Coproduct](val injectors: C#Injectors[F]) extends Pro
 
   import scala.language.implicitConversions
   implicit def asProgram[F[_], A](fa:F[A]):Program[F]#Instance[A] = null
-  
+
   //  type WithBranch[T] = With[F, Branch[T]#Instance :+: Coproduct]
 
   implicit def injector[E[_]](implicit ev: Injectors Contains (E ~> F)): E ~> F =
@@ -37,7 +37,7 @@ object With {
 
   type BranchedWith[L <: Coproduct, T] =
     Branch[T]#Instance :+: L
-  
+
   implicit def freeWith[L <: Coproduct, O[_]](
     implicit
     programType: ProgramType[O],

@@ -8,8 +8,9 @@ sealed trait Coproduct {
 }
 sealed trait :+:[H[_], T <: Coproduct] extends Coproduct {
   type Instance[x] <: Coproduct.Ops[H, T, x]
-	type Injectors[O[_]] = (H ~> O) :: T#Injectors[O]
+  type Injectors[O[_]] = (H ~> O) :: T#Injectors[O]
 }
+
 sealed trait CNil extends Coproduct {
   type Injectors[O[_]] = HNil
 }
@@ -19,13 +20,13 @@ trait CoproductImplicits extends coproduct.Removal with coproduct.Addition
 object Coproduct extends CoproductImplicits {
 
   trait Ops[H[_], T <: Coproduct, x] {
-  
-  def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X
-  
-  def toEither:Either[H[x], T#Instance[x]] = 
-    fold(ifHead = Left(_), ifTail = Right(_))
-}
-  
+
+    def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X
+
+    def toEither:Either[H[x], T#Instance[x]] =
+      fold(ifHead = Left(_), ifTail = Right(_))
+  }
+
   class Head[H[_], T <: Coproduct] extends (H :+: T) {
     case class Instance[x](head: H[x]) extends Ops[H, T, x] {
       def fold[X](ifHead: H[x] => X, ifTail: T#Instance[x] => X): X =

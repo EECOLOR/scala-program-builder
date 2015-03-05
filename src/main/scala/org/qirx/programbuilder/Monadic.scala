@@ -19,6 +19,11 @@ trait DefaultMonadics {
     def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = f(fa)
   }
 
+  implicit def programMonadic[O[_]] = new Monadic[Program[O]#Instance] {
+    def create[A](a:A) = Program(a)
+    def flatMap[A, B](fa: Program[O]#Instance[A])(f: A => Program[O]#Instance[B]) = fa flatMap f
+  }
+
   implicit def futureMonadic(implicit ec: ExecutionContext) =
     new Monadic[Future] {
       def create[A](a: A): Future[A] = Future successful a

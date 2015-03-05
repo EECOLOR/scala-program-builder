@@ -380,7 +380,7 @@ object Features extends Specification {
     object Parts {
       trait CustomPart1[ReturnType]
       case object Part1 extends CustomPart1[Option[String]]
-    		  trait CustomPart2[ReturnType]
+      trait CustomPart2[ReturnType]
       case class Part2(value: String) extends CustomPart2[Boolean]
     }
 
@@ -390,12 +390,12 @@ object Features extends Specification {
 
     implicit val programType = ProgramType[CustomPart1 :+: CustomPart2 :+: Static :+: CNil]
       .withBranch[Boolean]
-    
+
     def program[O[_]](
       implicit programType: O With (CustomPart1 :+: CustomPart2 :+: Static :+: CNil) WithBranch Boolean) = {
 
       import programType.injector
-      
+
       for {
         value <- Part1 ifNone Return(false)
         _ <- Part2(value) ifFalse Return(false)
@@ -410,12 +410,12 @@ object Features extends Specification {
           case Part1        => Some("testtest")
         }
       }
-    
+
     val customPart2Runner =
-    		new (CustomPart2 ~> Id) {
-    	def transform[x] = {
-    	case Part2(value) => value == "testtest"
-    	}
+      new (CustomPart2 ~> Id) {
+        def transform[x] = {
+          case Part2(value) => value == "testtest"
+      }
     }
 
     val runner = customPart1Runner :+: customPart2Runner :+: Static.Runner
